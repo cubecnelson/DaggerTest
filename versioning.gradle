@@ -1,0 +1,106 @@
+def readVersion() {
+    def versionFile = new File(project.rootDir, 'version.properties')
+    def version = new Properties()
+    def stream
+    try {
+        stream = new FileInputStream(versionFile)
+        version.load(stream)
+    }catch(FileNotFoundException ignore) {
+        def major = 1
+        def middle = 0
+        def minor = 0
+        def build = 1
+
+        version['major'] = major.toString()
+        version['middle'] = middle.toString()
+        version['minor'] = minor.toString()
+        version['build'] = build.toString()
+
+        def outputStream = new FileOutputStream(versionFile)
+        try {
+            version.store(outputStream, null)
+        }finally{
+            outputStream.close()
+        }
+    }finally{
+        if (stream != null) stream.close()
+    }
+    if(!version['major']) version['major'] = "1"
+    if(!version['middle']) version['middle'] = "0"
+    if(!version['minor']) version['major'] = "0"
+    if(!version['build']) version['major'] = "1"
+    return version
+}
+
+ext.versioning = [
+        readVersionName: { ->
+        def version = readVersion()
+        return "${version['major']}.${version['middle']}.${version['minor']}"
+    },
+
+       readBuildCode: { ->
+            def version = readVersion()
+            def build = version['build'] as int
+            return build
+        }
+]
+
+
+def incrementBuildNumber() {
+    def versionFile = new File(project.rootDir, 'version.properties')
+
+    def version = readVersion()
+
+    def build = version['build'] as int
+    build++
+    version['build'] = build.toString()
+
+    def stream = new FileOutputStream(versionFile)
+    try {
+        version.store(stream, null)
+    }finally{
+        stream.close()
+    }
+
+    return build
+}
+def incrementVersionNumber(def type="minor", def increment = 1) {
+    def versionFile = new File(project.rootDir, 'version.properties')
+
+    def version = readVersion()
+
+    def major = version['major'] as int
+    def middle = version['middle'] as int
+    def minor = version['minor'] as int
+    if(type == "major") {
+        major += increment
+        middle = 0
+        minor = 0
+    }else if(type == "middle") {
+        middle += increment
+        minor = 0
+    }else if(type == "minor") {
+        minor += increment
+    }
+
+    version['major'] = major.toString()
+    version['middle'] = middle.toString()
+    version['minor'] = minor.toString()
+
+    def stream = new FileOutputStream(versionFile)
+    try {
+        version.store(stream, null)
+    }finally{
+        stream.close()
+    }
+
+    return major + "." + middle + "." + minor
+}
+
+task doBuildNumberIncrement << {
+    incrementBuildNumber()
+}
+
+task doMinorVersionIncrement << {
+    incrementVersionNumber()
+}

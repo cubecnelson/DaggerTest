@@ -1,0 +1,82 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+
+# Uncomment the line if you want fastlane to automatically update itself
+# update_fastlane
+
+default_platform(:android)
+
+platform :android do
+  desc "Runs all the tests"
+  lane :test do
+    gradle(task: "test")
+  end
+
+  before_all do |lane, options|
+    #if lane == :version 
+    #  else 
+    #git_pull
+   #end
+  end
+
+  after_all do |lane, options|
+    if lane == :version 
+      else 
+        puts "flavor :" + @flavor
+          gradle(task: "assemble",
+            flavor: @flavor,
+            build_type: "Release",
+            properties: {
+          "android.injected.signing.store.file" => "uat_keystore.jks",
+          "android.injected.signing.store.password" => "wingon2018",
+          "android.injected.signing.key.alias" => "wingon2018",
+          "android.injected.signing.key.password" => "wingon2018",
+        }
+        )
+        hockey(
+            api_token: @hockeyToken,
+            apk: @apkPath,
+            notes: "Changelog",
+            notify: @notifyHockeyUser
+            )
+      end
+  end
+
+  lane :dev do |options|
+    gradle(task: "doBuildNumberIncrement")
+    gradle(task: "doMinorVersionIncrement")
+
+    # get the version code , version number from the file
+    
+
+    @flavor = "Dev"
+    @hockeyToken = ""
+    @apkPath = "./app/build/outputs/apk/dev/release/app-dev-release.apk"
+    @notifyHockeyUser = "0"
+    #tr -d "\n" < ../version.properties
+    @value = sh 'sed "1d" ../version.properties | sed  "s/middle=/./g" | sed  "s/major=/ver. /g" | sed  "s/minor=/./g" | sed  "s/build=/ build. /g" | tr -d "\n"'
+    puts @value
+
+    git_commit(path: "./version.properties", message: "Version Bump")
+    add_git_tag(tag: @value)
+    push_to_git_remote(remote_branch: "android/wing_on")
+
+  end
+
+  lane :sit do
+    @flavor = "Sit"
+    @hockeyToken = ""
+    @apkPath = "./app/build/outputs/apk/sit/release/app-sit-release.apk"
+    @notifyHockeyUser = "1"
+  end
+
+  lane :version do
+     gradle(task: "doBuildNumberIncrement")
+     gradle(task: "doMinorVersionIncrement")
+  end
+end
