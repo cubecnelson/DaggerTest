@@ -25,25 +25,26 @@ platform :android do
   end
 
   after_all do |lane, options|
+    puts "after_all"
     if lane == :version 
       else 
         puts "flavor :" + @flavor
           gradle(task: "assemble",
             flavor: @flavor,
-            build_type: "Release",
+            build_type: "Debug",
             properties: {
-          "android.injected.signing.store.file" => "uat_keystore.jks",
-          "android.injected.signing.store.password" => "wingon2018",
-          "android.injected.signing.key.alias" => "wingon2018",
-          "android.injected.signing.key.password" => "wingon2018",
+#          "android.injected.signing.store.file" => "uat_keystore.jks",
+#          "android.injected.signing.store.password" => "wingon2018",
+#          "android.injected.signing.key.alias" => "wingon2018",
+#          "android.injected.signing.key.password" => "wingon2018",
         }
         )
-        hockey(
-            api_token: @hockeyToken,
-            apk: @apkPath,
-            notes: "Changelog",
-            notify: @notifyHockeyUser
-            )
+#        hockey(
+#            api_token: @hockeyToken,
+#            apk: @apkPath,
+#            notes: "Changelog",
+#            notify: @notifyHockeyUser
+#            )
       end
   end
 
@@ -59,8 +60,13 @@ platform :android do
     @apkPath = "./app/build/outputs/apk/dev/release/app-dev-release.apk"
     @notifyHockeyUser = "0"
     #tr -d "\n" < ../version.properties
-    @value = sh 'sed "1d" ../version.properties | sed  "s/middle=/./g" | sed  "s/major=/ver. /g" | sed  "s/minor=/./g" | sed  "s/build=/ build. /g" | tr -d "\n"'
+    @value = sh 'sed "1d" ../version.properties | sed  "s/middle=/./g" | sed  "s/major=/ver_/g" | sed  "s/minor=/./g" | sed  "s/build=/_build_/g" | tr -d "\n"'
     puts @value
+
+    @last_tag = last_git_tag
+    puts @last_tag
+
+    puts changelog_from_git_commits(between: [@last_tag, "HEAD"])
 
     git_commit(path: "./version.properties", message: "Version Bump")
     add_git_tag(tag: @value)
